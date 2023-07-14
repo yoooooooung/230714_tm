@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Teachable Machine Image Model</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    .container {
+      max-width: 500px;
+      margin-top: 50px;
+    }
+    h1 {
+      text-align: center;
+    }
+    #uploadedImage {
+      display: block;
+      margin: 30px auto;
+    }
+    .prediction {
+      margin-bottom: 10px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <script type="text/javascript">
+    // More API functions here:
+    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+    // 이 링크를 본인 모델 링크로 수정
+    const URL = "https://teachablemachine.withgoogle.com/models/Oh6CmGvLz/";
+
+    let model, labelContainer, maxPredictions;
+
+    // Load the image model
+    async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        // load the model and metadata
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        // append elements to the DOM
+        labelContainer = document.getElementById("label-container");
+        for (let i = 0; i < maxPredictions; i++) { // and class labels
+            const predictionElement = document.createElement("div");
+            predictionElement.classList.add("prediction");
+            labelContainer.appendChild(predictionElement);
+        }
+    }
+
+    // Image classification on uploaded image
+    async function classifyImage() {
+      // Check if the model is loaded
+      if (model) {
+        // Get the uploaded image file
+        const fileInput = document.getElementById("fileInput");
+        const image = fileInput.files[0];
+
+        // Check if a valid File object is present
+        if (image instanceof File) {
+          // Create a FileReader to read the image file
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            // Create an image element to display the uploaded image
+            const imgElement = document.getElementById("uploadedImage");
+            imgElement.src = e.target.result;
+
+            // Run image classification
+            model.predict(imgElement).then(function(predictions) {
+              // Display the predictions
+              for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction =
+                    predictions[i].className + ": " + predictions[i].probability.toFixed(2);
+                const predictionElement = labelContainer.childNodes[i];
+                predictionElement.innerHTML = classPrediction;
+                predictionElement.classList.remove("text-success", "text-danger");
+                if (predictions[i].probability >= 0.5) {
+                  predictionElement.classList.add("text-success");
+                } else {
+                  predictionElement.classList.add("text-danger");
+                }
+              }
+            });
+          };
+          reader.readAsDataURL(image);
+        } else {
+          console.error("Invalid file object");
+        }
+      } else {
+        console.error("Model not loaded");
+      }
+    }
+  </script>
+</head>
+<body onload="init()">
+  <div class="container">
+    <h1>Teachable Machine Image Model</h1>
+  
+    <!-- 이미지 업로드 버튼 -->
+    <div class="custom-file">
+      <input type="file" class="custom-file-input" id="fileInput" accept="image/*" onchange="classifyImage()">
+      <label class="custom-file-label" for="fileInput">Choose image</label>
+    </div>
+  
+    <!-- 업로드된 이미지 표시 -->
+    <img id="uploadedImage" class="img-fluid" alt="Uploaded Image">
+  
+    <!-- 분류 결과 출력 -->
+    <div id="label-container"></div>
+  </div>
+</body>
+</html>
